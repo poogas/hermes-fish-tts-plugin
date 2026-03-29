@@ -93,6 +93,9 @@ def _prepare_text_for_fish(text: str) -> str:
 
 
 def _fish_request_format(file_path: str, want_opus: bool, fish_config: Dict[str, Any]) -> str:
+    if want_opus:
+        return "opus"
+
     suffix = Path(file_path).suffix.lower()
     if suffix in {".ogg", ".opus"}:
         return "opus"
@@ -114,6 +117,8 @@ def _resolve_output_path(base_tts, output_path: Optional[str], tts_config: Dict[
 
     if output_path:
         path = Path(output_path).expanduser()
+        if want_opus and path.suffix.lower() != ".ogg":
+            path = path.with_suffix(".ogg")
     else:
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         out_dir = Path(base_tts.DEFAULT_OUTPUT_DIR)

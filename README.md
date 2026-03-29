@@ -60,3 +60,5 @@ You can still override any low-level parameter manually in config.
 ## Telegram voice bubbles
 
 For Telegram delivery, the plugin requests Fish `opus` output and stores it as `.ogg`, so Hermes can send it as a native voice bubble.
+
+If `prefer_voice_bubble: true` is enabled, the plugin now overrides a forced `.mp3` output path from Hermes and ignores `format: mp3` for Telegram delivery. Voice-bubble preference wins, so the final file stays `.ogg`/Opus.
