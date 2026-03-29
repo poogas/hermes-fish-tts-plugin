@@ -1,0 +1,6 @@
+name: fish_tts
+version: 0.1.0
+description: Add Fish Audio as a Hermes TTS provider without modifying core files
+author: Tiese
+provides_hooks: []
+provides_tools: []

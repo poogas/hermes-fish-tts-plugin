@@ -1,0 +1,26 @@
+tts:
+  provider: fish
+  fish:
+    model: s2-pro
+    reference_id: 59d43ace8c78460b9adfd204de49c40a
+    language: ru
+    style: conversational
+    prefer_voice_bubble: true
+    api_key_env: FISH_AUDIO_API_KEY
+    latency: normal
+    format: mp3
+    temperature: 0.35
+    top_p: 0.7
+    repetition_penalty: 1.08
+    condition_on_previous_chunks: true
+    chunk_length: 120
+    prosody:
+      speed: 0.94
+      volume: 0
+
+# Alternative styles:
+# style: soft
+# style: playful
+# style: assistant
+# style: cold
+# style: dramatic
