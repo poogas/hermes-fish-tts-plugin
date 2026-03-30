@@ -64,10 +64,39 @@ def _should_prefer_voice_bubble(fish_config: Dict[str, Any]) -> bool:
     return platform in {"telegram", "signal"}
 
 
+def _inject_emotion_tags(text: str) -> str:
+    """Injects Fish Audio S2-Pro emotion tags based on punctuation patterns."""
+    if not text:
+        return text
+
+    # Ellipsis / ... → [pause]
+    text = re.sub(r'\.\.\.|…', ' [pause] ', text)
+
+    # Multiple exclamation marks → [excited] (more ! = more intense)
+    text = re.sub(r'!{2,}', lambda m: f"{' [excited]' * min(len(m.group()), 3)} ", text)
+
+    # Laugh patterns — inject [laugh] before them
+    text = re.sub(r'(?<![)\w])(ха|хаха|хех|хихи|аха|ахха|охха)\b', r' [laugh] \1', text, flags=re.IGNORECASE)
+
+    # Sigh patterns: ох/ах exclamations (NOT preceded by Cyrillic letter, followed by punct/space/end)
+    text = re.sub(r'(?<![А-ЯЁа-я])ох[ау]*(?=[,.\s!?…]|$)', lambda m: f'[sigh] {m.group()}', text, flags=re.IGNORECASE)
+
+    # вздох mid-sentence only (not at string start, followed by punct)
+    def _sigh_replacer(m):
+        return '[sigh] вздох' if m.start() > 0 else m.group()
+
+    text = re.sub(r'вздох(?=\.\.\.|[,.\s!?…»\"])', _sigh_replacer, text, flags=re.IGNORECASE)
+
+    return text
+
+
 def _prepare_text_for_fish(text: str) -> str:
     text = text.strip()
     if not text:
         return text
+
+    # Inject emotion tags BEFORE markdown cleaning so [...] survives
+    text = _inject_emotion_tags(text)
 
     text = re.sub(r'```[\s\S]*?```', ' ', text)
     text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', text)
