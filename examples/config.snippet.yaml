@@ -24,3 +24,10 @@ tts:
 # style: assistant
 # style: cold
 # style: dramatic
+
+# Emotional instruction — prepends to text for S2-Pro interpretation
+# Examples:
+#   emotion_instruction: "[sarcastic]"
+#   emotion_instruction: "Скажи это с лёгкой иронией и усмешкой"
+#   emotion_instruction: "[excited] Восторг! [laugh] Ха! Невероятно!"
+# emotion_instruction: "[playful]"

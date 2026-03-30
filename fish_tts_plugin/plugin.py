@@ -312,6 +312,11 @@ def _fish_text_to_speech_tool(text: str, output_path: Optional[str] = None) -> s
 
     text = _prepare_text_for_fish(text)
 
+    # Prepend emotion instruction if configured
+    emotion_instruction = (fish_config.get("emotion_instruction") or "").strip()
+    if emotion_instruction:
+        text = f"{emotion_instruction} {text}"
+
     tts_config = base_tts._load_tts_config()
     provider = base_tts._get_provider(tts_config)
     if provider != "fish":

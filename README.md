@@ -55,7 +55,21 @@ Available `tts.fish.style` presets:
 - `cold` — flatter, more detached delivery
 - `dramatic` — stronger emotional swing and sharper phrasing
 
-You can still override any low-level parameter manually in config.
+## Emotional instructions
+
+S2-Pro supports natural-language emotion tags directly in the prompt. Use `tts.fish.emotion_instruction` to prepend an emotion directive to every generated utterance:
+
+```yaml
+tts:
+  provider: fish
+  fish:
+    style: playful
+    emotion_instruction: "[sarcastic] С лёгкой иронией и усмешкой"
+```
+
+Common tags: `[laugh]`, `[sigh]`, `[chuckle]`, `[pause]`, `[emphasis]`, `[sarcastic]`, `[whisper]`, `[excited]`, `[sad]`, `[angry]`, `[inhale]`, `[exhale]`, `[tsk]`
+
+You can also chain them: `"[excited] Невероятно! [laugh] Ха!"`
 
 ## Telegram voice bubbles
 
