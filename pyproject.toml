@@ -4,14 +4,27 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hermes-fish-tts-plugin"
-version = "0.1.0"
+version = "0.1.1"
 description = "Hermes Agent plugin that adds Fish Audio as a TTS provider without patching core files"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [
   { name = "Tiese" }
 ]
+license = { text = "MIT" }
+keywords = ["hermes", "tts", "fish-audio", "telegram", "voice"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+]
 dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/poogas/hermes-fish-tts-plugin"
+Repository = "https://github.com/poogas/hermes-fish-tts-plugin"
+Issues = "https://github.com/poogas/hermes-fish-tts-plugin/issues"
 
 [project.entry-points."hermes_agent.plugins"]
 fish_tts = "fish_tts_plugin"

@@ -2,7 +2,7 @@ tts:
   provider: fish
   fish:
     model: s2-pro
-    reference_id: 59d43ace8c78460b9adfd204de49c40a
+    reference_id: your_fish_reference_id_here
     language: ru
     style: conversational
     prefer_voice_bubble: true
@@ -25,7 +25,7 @@ tts:
 # style: cold
 # style: dramatic
 
-# Emotional instruction — prepends to text for S2-Pro interpretation
+# Emotional instruction: prepended to text for S2-Pro interpretation
 # Examples:
 #   emotion_instruction: "[sarcastic]"
 #   emotion_instruction: "Скажи это с лёгкой иронией и усмешкой"

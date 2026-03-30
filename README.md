@@ -1,35 +1,85 @@
-# Hermes Fish TTS Plugin
+# hermes-fish-tts-plugin
 
-Adds Fish Audio as a `tts.provider: fish` option for Hermes Agent without editing Hermes core files.
+Fish Audio TTS provider plugin for Hermes Agent.
 
-## What it does
+This plugin adds `tts.provider: fish` to Hermes without patching Hermes core files. It hooks into the built-in TTS tool at runtime, keeps the default providers intact, and only takes over when Fish is selected in config.
 
-- Monkey-patches `tools.tts_tool.text_to_speech_tool`
-- Keeps all built-in providers working unchanged
-- Activates only when `tts.provider: fish`
-- Supports both tool-based TTS and CLI `/voice` playback
-- Can be installed as a pip plugin via Hermes plugin entry points
+## Features
 
-## Install
+- Adds Fish Audio as a Hermes TTS provider
+- No core-file edits inside Hermes
+- Preserves built-in providers and falls back cleanly when Fish is not selected
+- Supports Hermes text-to-speech tool output and `/voice` playback flows
+- Optimizes Telegram voice-bubble delivery by forcing Opus-in-OGG when desired
+- Supports style presets for S2-Pro
+- Supports prompt-level emotional instructions
+- Auto-injects a few lightweight expressive tags from punctuation and laugh/sigh patterns
+
+## How it works
+
+The plugin monkey-patches `tools.tts_tool.text_to_speech_tool` during plugin registration.
+
+Behavior:
+- If `tts.provider` is not `fish`, Hermes continues using the original TTS implementation.
+- If `tts.provider` is `fish`, the plugin builds a Fish Audio request, generates the audio file, and returns a Hermes-compatible response payload.
+- When `prefer_voice_bubble: true` is enabled, the plugin overrides a forced `.mp3` output path and keeps the final output as `.ogg` so Telegram sends it as a native voice bubble.
+
+## Requirements
+
+- Python 3.10+
+- Hermes Agent with plugin loading enabled
+- A Fish Audio API key available through environment variables or config
+- A valid Fish reference voice or reference configuration on your side
+
+## Installation
+
+### Install from a local path
 
 ```bash
-pip install /workspace/hermes-fish-tts-plugin
+pip install /path/to/hermes-fish-tts-plugin
 ```
 
-## Config
+### Reinstall after local edits
+
+```bash
+pip install --force-reinstall /path/to/hermes-fish-tts-plugin
+```
+
+## Hermes configuration
+
+Minimal example:
 
 ```yaml
 tts:
   provider: fish
   fish:
     model: s2-pro
-    reference_id: 59d43ace8c78460b9adfd204de49c40a
+    reference_id: your_fish_reference_id_here
+    language: ru
+    style: playful
+    prefer_voice_bubble: true
+    api_key_env: FISH_AUDIO_API_KEY
+```
+
+Fuller example:
+
+```yaml
+tts:
+  provider: fish
+  fish:
+    model: s2-pro
+    reference_id: your_fish_reference_id_here
     language: ru
     style: conversational
     prefer_voice_bubble: true
     latency: normal
     format: mp3
     api_key_env: FISH_AUDIO_API_KEY
+    chunk_length: 120
+    temperature: 0.35
+    top_p: 0.7
+    repetition_penalty: 1.08
+    condition_on_previous_chunks: true
     prosody:
       speed: 0.94
       volume: 0
@@ -38,26 +88,63 @@ tts:
 Environment variable:
 
 ```bash
-export FISH_AUDIO_API_KEY=your_key_here
+export FISH_AUDIO_API_KEY=your_api_key_here
 ```
 
-Accepted key env names by default:
+Accepted key environment variables by default:
 - `FISH_AUDIO_API_KEY`
 - `FISH_API_KEY`
 
-## Voice styles
+You can also set:
+- `tts.fish.api_key_env` to choose a custom env var name
+- `tts.fish.api_key` for direct config-based injection, though env vars are strongly preferred
 
-Available `tts.fish.style` presets:
-- `conversational` — balanced default, natural chat rhythm
-- `soft` — calmer, gentler, slightly more intimate
+## Configuration reference
+
+### Top-level
+
+- `tts.provider`: must be `fish`
+
+### `tts.fish`
+
+- `model`: Fish model name, default `s2-pro`
+- `reference_id`: Fish reference voice identifier
+- `language`: language hint passed to Fish
+- `style`: one of the built-in style presets
+- `prefer_voice_bubble`: prefer Telegram/Signal-style voice delivery
+- `api_key_env`: env var name to read the API key from
+- `api_key`: direct API key override
+- `endpoint`: custom Fish endpoint, default `https://api.fish.audio/v1/tts`
+- `timeout`: request timeout in seconds
+- `format`: desired output format when voice-bubble mode is not forcing Opus
+- `latency`: Fish latency mode
+- `normalize`: enable or disable normalization
+- `chunk_length`: text chunk length for generation
+- `temperature`, `top_p`, `repetition_penalty`: sampling controls
+- `condition_on_previous_chunks`: smoother multi-chunk continuation
+- `min_chunk_length`, `max_new_tokens`, `early_stop_threshold`, `sample_rate`: optional advanced generation fields
+- `mp3_bitrate`, `opus_bitrate`: optional output bitrate controls
+- `prosody.speed`, `prosody.volume`: prosody controls
+- `emotion_instruction`: text prepended to every utterance before generation
+
+## Style presets
+
+Available values for `tts.fish.style`:
+
+- `conversational` — balanced default for normal chat
+- `soft` — calmer and gentler delivery
 - `playful` — more lively and expressive
-- `assistant` — neutral, clean, restrained
-- `cold` — flatter, more detached delivery
-- `dramatic` — stronger emotional swing and sharper phrasing
+- `assistant` — restrained neutral assistant tone
+- `cold` — flatter and more detached delivery
+- `dramatic` — stronger expressive swing and sharper emphasis
+
+The style preset fills defaults for fields like chunk length, temperature, top-p, repetition penalty, and chunk conditioning. Any explicit config value still wins.
 
 ## Emotional instructions
 
-S2-Pro supports natural-language emotion tags directly in the prompt. Use `tts.fish.emotion_instruction` to prepend an emotion directive to every generated utterance:
+Fish S2-Pro supports natural-language instructions and tags in the prompt. You can prepend an instruction to every utterance with `tts.fish.emotion_instruction`.
+
+Example:
 
 ```yaml
 tts:
@@ -67,12 +154,119 @@ tts:
     emotion_instruction: "[sarcastic] С лёгкой иронией и усмешкой"
 ```
 
-Common tags: `[laugh]`, `[sigh]`, `[chuckle]`, `[pause]`, `[emphasis]`, `[sarcastic]`, `[whisper]`, `[excited]`, `[sad]`, `[angry]`, `[inhale]`, `[exhale]`, `[tsk]`
+Common tags you can experiment with:
+- `[laugh]`
+- `[sigh]`
+- `[chuckle]`
+- `[pause]`
+- `[emphasis]`
+- `[sarcastic]`
+- `[whisper]`
+- `[excited]`
+- `[sad]`
+- `[angry]`
+- `[inhale]`
+- `[exhale]`
+- `[tsk]`
 
-You can also chain them: `"[excited] Невероятно! [laugh] Ха!"`
+You can also chain them:
+
+```text
+[excited] Невероятно! [laugh] Ха!
+```
+
+## Auto-injected expression tags
+
+Before sending text to Fish, the plugin lightly cleans Hermes output and injects a few expressive tags based on simple patterns:
+
+- ellipsis becomes a pause cue
+- repeated exclamation marks can inject excitement cues
+- common laugh patterns like `ха`, `хаха`, `хех` can inject laugh cues
+- some sigh-like patterns can inject sigh cues
+
+This is intentionally lightweight, not a full linguistic engine.
 
 ## Telegram voice bubbles
 
-For Telegram delivery, the plugin requests Fish `opus` output and stores it as `.ogg`, so Hermes can send it as a native voice bubble.
+Hermes Telegram delivery decides whether audio becomes a voice bubble mainly from the file extension.
 
-If `prefer_voice_bubble: true` is enabled, the plugin now overrides a forced `.mp3` output path from Hermes and ignores `format: mp3` for Telegram delivery. Voice-bubble preference wins, so the final file stays `.ogg`/Opus.
+This plugin therefore does two important things when `prefer_voice_bubble: true` is enabled:
+- requests Fish `opus`
+- ensures the saved file extension is `.ogg`
+
+That means voice-bubble preference wins even if Hermes passed an `.mp3` output path or your config still says `format: mp3`.
+
+## Security notes
+
+This repository should not contain real API keys, tokens, or personal secrets.
+
+Safe practice:
+- keep your Fish API key in environment variables
+- keep private voice identifiers out of public examples if you treat them as sensitive
+- avoid committing generated audio, logs, or local configs with secrets
+
+A sanitized example config is provided in `examples/config.snippet.yaml`.
+
+## Repository layout
+
+```text
+fish_tts_plugin/
+  __init__.py
+  plugin.py
+  plugin.yaml
+examples/
+  config.snippet.yaml
+tests/
+  test_voice_bubble.py
+```
+
+## Development
+
+### Run a quick syntax check
+
+```bash
+python -m py_compile fish_tts_plugin/plugin.py
+```
+
+### Run tests with pytest
+
+```bash
+pytest -q
+```
+
+If `pytest` is unavailable in your environment, install it first or adapt the tests to your preferred runner.
+
+## Limitations
+
+- The plugin currently patches Hermes TTS internals rather than using a first-class provider API.
+- Fish request fields may need updates if the upstream Fish API changes.
+- Advanced emotional control quality depends on the model and the selected reference voice.
+
+## Troubleshooting
+
+### Hermes still uses the default voice
+
+Check that:
+- the plugin is installed into the same Python environment Hermes uses
+- Hermes plugin loading is enabled
+- `tts.provider: fish` is set
+- the API key env var is present in the runtime environment
+
+### Voice bubble is sent as normal audio
+
+Check that:
+- `prefer_voice_bubble: true` is enabled
+- the final output path ends in `.ogg`
+- the generated request format is Opus-compatible
+
+### Fish request fails
+
+Check that:
+- your API key is valid
+- your endpoint is correct
+- your `reference_id` exists and belongs to your Fish setup
+- your model name is supported by the account and endpoint you are using
+
+## License
+
+MIT

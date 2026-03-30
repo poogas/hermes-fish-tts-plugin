@@ -335,23 +335,23 @@ def _fish_text_to_speech_tool(text: str, output_path: Optional[str] = None) -> s
     if not text or not text.strip():
         return json.dumps({"success": False, "error": "Text is required"}, ensure_ascii=False)
 
-    if len(text) > base_tts.MAX_TEXT_LENGTH:
-        logger.warning("Fish TTS text too long (%d chars), truncating to %d", len(text), base_tts.MAX_TEXT_LENGTH)
-        text = text[: base_tts.MAX_TEXT_LENGTH]
-
-    text = _prepare_text_for_fish(text)
-
-    # Prepend emotion instruction if configured
-    emotion_instruction = (fish_config.get("emotion_instruction") or "").strip()
-    if emotion_instruction:
-        text = f"{emotion_instruction} {text}"
-
     tts_config = base_tts._load_tts_config()
     provider = base_tts._get_provider(tts_config)
     if provider != "fish":
         return _ORIGINAL_TEXT_TO_SPEECH_TOOL(text=text, output_path=output_path)
 
     fish_config = tts_config.get("fish", {})
+
+    if len(text) > base_tts.MAX_TEXT_LENGTH:
+        logger.warning("Fish TTS text too long (%d chars), truncating to %d", len(text), base_tts.MAX_TEXT_LENGTH)
+        text = text[: base_tts.MAX_TEXT_LENGTH]
+
+    text = _prepare_text_for_fish(text)
+
+    emotion_instruction = (fish_config.get("emotion_instruction") or "").strip()
+    if emotion_instruction:
+        text = f"{emotion_instruction} {text}"
+
     file_path, want_opus = _resolve_output_path(base_tts, output_path, tts_config)
 
     try:
