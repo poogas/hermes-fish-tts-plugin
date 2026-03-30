@@ -13,13 +13,15 @@ This plugin adds `tts.provider: fish` to Hermes without patching Hermes core fil
 - Optimizes Telegram voice-bubble delivery by forcing Opus-in-OGG when desired
 - Supports style presets for S2-Pro
 - Supports prompt-level emotional instructions
-- Auto-injects a few lightweight expressive tags from punctuation and laugh/sigh patterns
+- Auto-injects expressive tags from punctuation and laugh/sigh patterns
+- Strips Telegram sticker/emoji markup, Unicode emoji, and ASCII emoticons before sending text to Fish
 
 ## How it works
 
 The plugin monkey-patches `tools.tts_tool.text_to_speech_tool` during plugin registration.
 
 Behavior:
+
 - If `tts.provider` is not `fish`, Hermes continues using the original TTS implementation.
 - If `tts.provider` is `fish`, the plugin builds a Fish Audio request, generates the audio file, and returns a Hermes-compatible response payload.
 - When `prefer_voice_bubble: true` is enabled, the plugin overrides a forced `.mp3` output path and keeps the final output as `.ogg` so Telegram sends it as a native voice bubble.
@@ -88,7 +90,7 @@ tts:
 Environment variable:
 
 ```bash
-export FISH_AUDIO_API_KEY=your_api_key_here
+export FISH_AUDIO_API_KEY=***
 ```
 
 Accepted key environment variables by default:
@@ -179,18 +181,48 @@ You can also chain them:
 
 Before sending text to Fish, the plugin lightly cleans Hermes output and injects a few expressive tags based on simple patterns:
 
-- ellipsis becomes a pause cue
-- repeated exclamation marks can inject excitement cues
-- common laugh patterns like `ха`, `хаха`, `хех` can inject laugh cues
-- some sigh-like patterns can inject sigh cues
+- ellipsis (`...` or `…`) → `[pause]`
+- repeated exclamation marks → `[excited]` (more `!` = more intense)
+- laugh patterns (`ха`, `хаха`, `хех`, `хихи`, etc.) → `[laugh]`
+- sigh patterns (`ox`, `oxxa`, etc.) → `[sigh]`
+- `вздох` (sigh word mid-sentence) → `[sigh] вздох`
 
 This is intentionally lightweight, not a full linguistic engine.
+
+## Text preprocessing
+
+The `_prepare_text_for_fish` function sanitizes text before it reaches Fish Audio:
+
+### What is stripped
+
+- **Telegram sticker markup**: `<tg-emoji>`, `![name](tg://emoji?id=...)`, `![name](url)`
+- **Unicode emoji**: all pictographs, symbols, flags, and misc emoji characters
+- **ASCII emoticons**: `:)`, `:(` `:D`, `xD`, `:-P`, `<3`, and variants
+- **Markdown**: code blocks, link syntax, inline code, emphasis markers (`#*_~`)
+- **URLs**: `https://...` and `http://...` links
+- **Em dashes / en dashes**: replaced with commas
+
+### What is preserved
+
+- Emotion tags in brackets like `[laugh]`, `[sigh]`, `[excited]`, `[pause]` — these survive the cleaning because they are injected *before* markdown stripping
+- Cyrillic and Latin text, punctuation, numbers
+
+### Order of operations
+
+1. Strip Telegram sticker markup
+2. Strip Unicode emoji characters
+3. Strip ASCII emoticons
+4. Inject auto-emotion tags (laugh, sigh, excited, pause)
+5. Remove markdown (code blocks, links, inline code, emphasis)
+6. Normalize whitespace and dashes
+7. Ensure sentence-ending punctuation
 
 ## Telegram voice bubbles
 
 Hermes Telegram delivery decides whether audio becomes a voice bubble mainly from the file extension.
 
 This plugin therefore does two important things when `prefer_voice_bubble: true` is enabled:
+
 - requests Fish `opus`
 - ensures the saved file extension is `.ogg`
 
@@ -209,11 +241,11 @@ A sanitized example config is provided in `examples/config.snippet.yaml`.
 
 ## Repository layout
 
-```text
+```
 fish_tts_plugin/
   __init__.py
-  plugin.py
-  plugin.yaml
+  plugin.py        # main plugin logic
+  plugin.yaml      # plugin metadata
 examples/
   config.snippet.yaml
 tests/

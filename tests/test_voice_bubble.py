@@ -45,6 +45,20 @@ class VoiceBubbleTests(unittest.TestCase):
         self.assertIn("[pause]", prepared)
         self.assertIn("[laugh]", prepared)
 
+    def test_prepare_text_strips_telegram_sticker_markup(self):
+        prepared = plugin._prepare_text_for_fish(
+            "Ответь ![sticker](tg://emoji?id=123456) и <tg-emoji emoji-id=\"123\">🔥</tg-emoji> ок"
+        )
+        self.assertEqual(prepared, "Ответь и ок.")
+
+    def test_prepare_text_strips_unicode_emoji(self):
+        prepared = plugin._prepare_text_for_fish("Привет 🙂🔥 ок")
+        self.assertEqual(prepared, "Привет ок.")
+
+    def test_prepare_text_strips_ascii_emoticons_without_replacements(self):
+        prepared = plugin._prepare_text_for_fish("Ну :) это xD вообще :-P странно")
+        self.assertEqual(prepared, "Ну это вообще странно.")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import re
+import unicodedata
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -90,10 +91,65 @@ def _inject_emotion_tags(text: str) -> str:
     return text
 
 
+_ASCII_EMOTICON_RE = re.compile(
+    r'(?<!\w)(?:'
+    r'[:;=8xX]-?[)(DPOp/\\|]+|'
+    r'[)(DPOp/\\|]+-?[:;=8xX]|'
+    r'<3+'
+    r')(?!\w)'
+)
+
+
+def _strip_telegram_sticker_markup(text: str) -> str:
+    text = re.sub(r'<tg-emoji\b[^>]*>.*?</tg-emoji>', ' ', text, flags=re.IGNORECASE | re.DOTALL)
+    text = re.sub(r'!\[[^\]]*\]\(\s*tg://emoji\?id=[^)]+\)', ' ', text, flags=re.IGNORECASE)
+    text = re.sub(r'!\[[^\]]*\]\([^)]+\)', ' ', text)
+    return text
+
+
+def _is_emoji_char(char: str) -> bool:
+    if not char:
+        return False
+
+    if char in {'©', '®', '™'}:
+        return False
+
+    codepoint = ord(char)
+    if codepoint in {0x200D, 0xFE0E, 0xFE0F, 0x20E3}:  # ZWJ / variation selectors / keycap combiner
+        return True
+
+    return (
+        0x1F1E6 <= codepoint <= 0x1F1FF  # flags
+        or 0x1F300 <= codepoint <= 0x1FAFF  # pictographs / supplemental symbols
+        or 0x2600 <= codepoint <= 0x27BF  # dingbats / misc symbols commonly used as emoji
+    )
+
+
+def _strip_emoji_chars(text: str) -> str:
+    cleaned: list[str] = []
+    for char in text:
+        if _is_emoji_char(char):
+            if cleaned and not cleaned[-1].isspace():
+                cleaned.append(' ')
+            continue
+        if unicodedata.category(char) == 'Mn' and cleaned and cleaned[-1].isspace():
+            continue
+        cleaned.append(char)
+    return ''.join(cleaned)
+
+
+def _strip_ascii_emoticons(text: str) -> str:
+    return _ASCII_EMOTICON_RE.sub(' ', text)
+
+
 def _prepare_text_for_fish(text: str) -> str:
     text = text.strip()
     if not text:
         return text
+
+    text = _strip_telegram_sticker_markup(text)
+    text = _strip_emoji_chars(text)
+    text = _strip_ascii_emoticons(text)
 
     # Inject emotion tags BEFORE markdown cleaning so [...] survives
     text = _inject_emotion_tags(text)
@@ -103,17 +159,10 @@ def _prepare_text_for_fish(text: str) -> str:
     text = re.sub(r'https?://\S+', '', text)
     text = re.sub(r'`([^`]+)`', r'\1', text)
     text = re.sub(r'[#*_~]+', ' ', text)
+    text = text.replace('—', ', ')
+    text = text.replace('–', ', ')
     text = re.sub(r'\s*\n\s*', ' ', text)
     text = re.sub(r'\s{2,}', ' ', text).strip()
-
-    replacements = {
-        ':)': ' улыбка ',
-        ':(': ' грустно ',
-        '—': ', ',
-        '–': ', ',
-    }
-    for src, dst in replacements.items():
-        text = text.replace(src, dst)
 
     if text and text[-1] not in '.!?…':
         text += '.'
