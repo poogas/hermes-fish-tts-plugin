@@ -11,8 +11,6 @@ tts:
     format: mp3
     temperature: 0.35
     top_p: 0.7
-    repetition_penalty: 1.08
-    condition_on_previous_chunks: true
     chunk_length: 120
     prosody:
       speed: 0.94

@@ -80,8 +80,6 @@ tts:
     chunk_length: 120
     temperature: 0.35
     top_p: 0.7
-    repetition_penalty: 1.08
-    condition_on_previous_chunks: true
     prosody:
       speed: 0.94
       volume: 0

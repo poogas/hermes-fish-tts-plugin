@@ -248,48 +248,36 @@ def _style_defaults(style: str) -> Dict[str, Any]:
             "chunk_length": 120,
             "temperature": 0.35,
             "top_p": 0.7,
-            "repetition_penalty": 1.08,
-            "condition_on_previous_chunks": True,
         },
         "soft": {
             "latency": "normal",
             "chunk_length": 110,
             "temperature": 0.28,
             "top_p": 0.68,
-            "repetition_penalty": 1.1,
-            "condition_on_previous_chunks": True,
         },
         "playful": {
             "latency": "normal",
             "chunk_length": 100,
             "temperature": 0.48,
             "top_p": 0.82,
-            "repetition_penalty": 1.05,
-            "condition_on_previous_chunks": True,
         },
         "assistant": {
             "latency": "normal",
             "chunk_length": 140,
             "temperature": 0.22,
             "top_p": 0.62,
-            "repetition_penalty": 1.12,
-            "condition_on_previous_chunks": True,
         },
         "cold": {
             "latency": "normal",
             "chunk_length": 150,
             "temperature": 0.18,
             "top_p": 0.55,
-            "repetition_penalty": 1.15,
-            "condition_on_previous_chunks": True,
         },
         "dramatic": {
             "latency": "normal",
             "chunk_length": 90,
             "temperature": 0.6,
             "top_p": 0.88,
-            "repetition_penalty": 1.03,
-            "condition_on_previous_chunks": True,
         },
     }
     return presets.get(style, presets["conversational"])
@@ -304,8 +292,6 @@ def _build_payload(text: str, file_path: str, fish_config: Dict[str, Any], want_
     default_chunk_length = preset["chunk_length"]
     default_temperature = preset["temperature"]
     default_top_p = preset["top_p"]
-    default_repetition_penalty = preset["repetition_penalty"]
-    default_condition = preset["condition_on_previous_chunks"]
 
     payload: Dict[str, Any] = {
         "text": text,
@@ -326,26 +312,21 @@ def _build_payload(text: str, file_path: str, fish_config: Dict[str, Any], want_
             "volume": prosody.get("volume", 0),
         }
 
-    field_defaults = {
-        "temperature": default_temperature,
-        "top_p": default_top_p,
-        "repetition_penalty": default_repetition_penalty,
-        "condition_on_previous_chunks": default_condition,
-    }
-
-    for field in (
+    # Parameters confirmed in Fish Audio REST API (verified 2026-03-31)
+    confirmed_fields = (
         "mp3_bitrate",
         "opus_bitrate",
         "temperature",
         "top_p",
-        "max_new_tokens",
-        "repetition_penalty",
-        "min_chunk_length",
-        "condition_on_previous_chunks",
-        "early_stop_threshold",
         "sample_rate",
         "language",
-    ):
+    )
+    field_defaults = {
+        "temperature": default_temperature,
+        "top_p": default_top_p,
+    }
+
+    for field in confirmed_fields:
         if field in fish_config:
             value = fish_config.get(field)
         else:
