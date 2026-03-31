@@ -144,7 +144,7 @@ The style preset fills defaults for fields like chunk length, temperature, top-p
 
 ## Emotional instructions and tags
 
-The current plugin supports two emotion mechanisms:
+The plugin supports three emotion mechanisms:
 
 1. `tts.fish.emotion_instruction`
    - optional static prefix prepended to every utterance right before the Fish request
@@ -153,6 +153,12 @@ The current plugin supports two emotion mechanisms:
 2. Built-in auto-tag injection inside `_inject_emotion_tags()`
    - runs automatically during `_prepare_text_for_fish()`
    - converts punctuation / laugh / sigh patterns in the actual message into Fish tags
+   - always active, no config needed
+
+3. Custom user-defined regex-to-tag rules (`tts.fish.emotion_tags`)
+   - enabled via `emotion_tags.enabled: true`
+   - user provides a list of `pattern` / `tag` pairs
+   - applied first, before built-in rules
 
 Example for a static global instruction:
 
@@ -163,6 +169,23 @@ tts:
     style: playful
     emotion_instruction: "[sarcastic]"
 ```
+
+Example with custom emotion tag rules:
+
+```yaml
+tts:
+  provider: fish
+  fish:
+    emotion_tags:
+      enabled: true
+      custom:
+        - pattern: "(кхе-хи)"
+          tag: "[giggle]"
+        - pattern: "(мда+|нуу+)"
+          tag: "[sigh]"
+```
+
+Custom rules are applied before built-in ones. Built-in rules still fire for any patterns they match, so you can extend — not replace — the defaults.
 
 Common tags you can experiment with in `emotion_instruction` or directly in text:
 - `[laugh]`
@@ -178,25 +201,14 @@ Common tags you can experiment with in `emotion_instruction` or directly in text
 - `[inhale]`
 - `[exhale]`
 - `[tsk]`
+- `[giggle]`
+- `[groan]`
 
 You can also chain them:
 
 ```text
 [excited] Невероятно! [laugh] Ха!
 ```
-
-Important: this repository does NOT currently expose a config schema like `tts.fish.emotion_tags.enabled/custom`.
-There is no user-configurable regex-to-tag mapping in the plugin config right now. If you saw a snippet like:
-
-```yaml
-emotion_tags:
-  enabled: true
-  custom:
-    - pattern: "(кхе-хи)"
-      tag: "[giggle]"
-```
-
-that is not an implemented option in this plugin as of the current code.
 
 ## Auto-injected expression tags
 

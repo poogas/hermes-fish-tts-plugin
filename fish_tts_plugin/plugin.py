@@ -65,10 +65,34 @@ def _should_prefer_voice_bubble(fish_config: Dict[str, Any]) -> bool:
     return platform in {"telegram", "signal"}
 
 
-def _inject_emotion_tags(text: str) -> str:
-    """Injects Fish Audio S2-Pro emotion tags based on punctuation patterns."""
+def _apply_custom_emotion_rules(text: str, custom_rules: list) -> str:
+    """Apply user-defined regex → tag rules from config."""
+    if not custom_rules:
+        return text
+    for rule in custom_rules:
+        pattern = rule.get("pattern", "")
+        tag = rule.get("tag", "")
+        if not pattern or not tag:
+            continue
+        try:
+            text = re.sub(pattern, rf" {tag} \1", text, flags=re.IGNORECASE)
+        except re.error as exc:
+            logger.warning("Bad custom emotion regex %r: %s", pattern, exc)
+    return text
+
+
+def _inject_emotion_tags(text: str, custom_rules: Optional[list] = None) -> str:
+    """Injects Fish Audio S2-Pro emotion tags based on punctuation patterns.
+
+    custom_rules: list of dicts with keys "pattern" (regex) and "tag" (Fish tag string).
+    Applied first, before built-in rules.
+    """
     if not text:
         return text
+
+    # User-defined custom rules first
+    if custom_rules:
+        text = _apply_custom_emotion_rules(text, custom_rules)
 
     # Ellipsis / ... → [pause]
     text = re.sub(r'\.\.\.|…', ' [pause] ', text)
@@ -142,7 +166,7 @@ def _strip_ascii_emoticons(text: str) -> str:
     return _ASCII_EMOTICON_RE.sub(' ', text)
 
 
-def _prepare_text_for_fish(text: str) -> str:
+def _prepare_text_for_fish(text: str, custom_rules: Optional[list] = None) -> str:
     text = text.strip()
     if not text:
         return text
@@ -152,7 +176,7 @@ def _prepare_text_for_fish(text: str) -> str:
     text = _strip_ascii_emoticons(text)
 
     # Inject emotion tags BEFORE markdown cleaning so [...] survives
-    text = _inject_emotion_tags(text)
+    text = _inject_emotion_tags(text, custom_rules=custom_rules)
 
     text = re.sub(r'```[\s\S]*?```', ' ', text)
     text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', text)
@@ -395,7 +419,13 @@ def _fish_text_to_speech_tool(text: str, output_path: Optional[str] = None) -> s
         logger.warning("Fish TTS text too long (%d chars), truncating to %d", len(text), base_tts.MAX_TEXT_LENGTH)
         text = text[: base_tts.MAX_TEXT_LENGTH]
 
-    text = _prepare_text_for_fish(text)
+    # Extract custom emotion rules from config
+    emotion_tags_config = fish_config.get("emotion_tags", {})
+    custom_rules: Optional[list] = None
+    if isinstance(emotion_tags_config, dict) and emotion_tags_config.get("enabled", False):
+        custom_rules = emotion_tags_config.get("custom") or []
+
+    text = _prepare_text_for_fish(text, custom_rules=custom_rules if custom_rules else None)
 
     emotion_instruction = (fish_config.get("emotion_instruction") or "").strip()
     if emotion_instruction:

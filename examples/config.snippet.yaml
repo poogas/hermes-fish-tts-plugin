@@ -33,5 +33,14 @@ tts:
 # emotion_instruction: "[playful]"
 
 # Note: the plugin also auto-injects tags like [pause], [excited], [laugh], [sigh]
-# from punctuation/interjection patterns in the message text.
-# There is currently NO config option like emotion_tags.enabled/custom here.
+# from punctuation/interjection patterns in the message text automatically.
+
+# Custom emotion tag rules: map regex patterns to Fish emotion tags.
+# Custom rules run BEFORE built-in ones, so you can extend defaults.
+# emotion_tags:
+#   enabled: true
+#   custom:
+#     - pattern: "(кхе-хи)"
+#       tag: "[giggle]"
+#     - pattern: "(мда+|нуу+)"
+#       tag: "[sigh]"
