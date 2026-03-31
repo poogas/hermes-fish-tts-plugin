@@ -142,21 +142,29 @@ Available values for `tts.fish.style`:
 
 The style preset fills defaults for fields like chunk length, temperature, top-p, repetition penalty, and chunk conditioning. Any explicit config value still wins.
 
-## Emotional instructions
+## Emotional instructions and tags
 
-Fish S2-Pro supports natural-language instructions and tags in the prompt. You can prepend an instruction to every utterance with `tts.fish.emotion_instruction`.
+The current plugin supports two emotion mechanisms:
 
-Example:
+1. `tts.fish.emotion_instruction`
+   - optional static prefix prepended to every utterance right before the Fish request
+   - useful when you want one persistent delivery mode for the whole voice
+
+2. Built-in auto-tag injection inside `_inject_emotion_tags()`
+   - runs automatically during `_prepare_text_for_fish()`
+   - converts punctuation / laugh / sigh patterns in the actual message into Fish tags
+
+Example for a static global instruction:
 
 ```yaml
 tts:
   provider: fish
   fish:
     style: playful
-    emotion_instruction: "[sarcastic] С лёгкой иронией и усмешкой"
+    emotion_instruction: "[sarcastic]"
 ```
 
-Common tags you can experiment with:
+Common tags you can experiment with in `emotion_instruction` or directly in text:
 - `[laugh]`
 - `[sigh]`
 - `[chuckle]`
@@ -177,14 +185,27 @@ You can also chain them:
 [excited] Невероятно! [laugh] Ха!
 ```
 
+Important: this repository does NOT currently expose a config schema like `tts.fish.emotion_tags.enabled/custom`.
+There is no user-configurable regex-to-tag mapping in the plugin config right now. If you saw a snippet like:
+
+```yaml
+emotion_tags:
+  enabled: true
+  custom:
+    - pattern: "(кхе-хи)"
+      tag: "[giggle]"
+```
+
+that is not an implemented option in this plugin as of the current code.
+
 ## Auto-injected expression tags
 
-Before sending text to Fish, the plugin lightly cleans Hermes output and injects a few expressive tags based on simple patterns:
+Before sending text to Fish, the plugin lightly cleans Hermes output and injects a few expressive tags based on hardcoded regex rules in `_inject_emotion_tags()`:
 
 - ellipsis (`...` or `…`) → `[pause]`
 - repeated exclamation marks → `[excited]` (more `!` = more intense)
 - laugh patterns (`ха`, `хаха`, `хех`, `хихи`, etc.) → `[laugh]`
-- sigh patterns (`ox`, `oxxa`, etc.) → `[sigh]`
+- sigh patterns (`ох`, `оха`, `охау`, etc. when used as sigh-like interjections) → `[sigh]`
 - `вздох` (sigh word mid-sentence) → `[sigh] вздох`
 
 This is intentionally lightweight, not a full linguistic engine.

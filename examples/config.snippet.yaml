@@ -25,9 +25,13 @@ tts:
 # style: cold
 # style: dramatic
 
-# Emotional instruction: prepended to text for S2-Pro interpretation
+# Emotional instruction: static prefix prepended to every utterance for S2-Pro
 # Examples:
 #   emotion_instruction: "[sarcastic]"
 #   emotion_instruction: "Скажи это с лёгкой иронией и усмешкой"
 #   emotion_instruction: "[excited] Восторг! [laugh] Ха! Невероятно!"
 # emotion_instruction: "[playful]"
+
+# Note: the plugin also auto-injects tags like [pause], [excited], [laugh], [sigh]
+# from punctuation/interjection patterns in the message text.
+# There is currently NO config option like emotion_tags.enabled/custom here.
